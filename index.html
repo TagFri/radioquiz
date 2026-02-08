@@ -1,0 +1,331 @@
+<!doctype html>
+<html lang="no">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Tilfeldig radiologi-case</title>
+    <style>
+        body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 16px; line-height: 1.4; }
+        .wrap { max-width: 900px; margin: 0 auto; display: grid; gap: 12px; }
+        .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .muted { color: #666; font-size: 14px; }
+        .box { border: 1px solid #ddd; border-radius: 10px; padding: 12px; }
+        pre { white-space: pre-wrap; margin: 0; }
+
+        button { padding: 10px 14px; border-radius: 10px; border: 1px solid #111; background: #111; color: #fff; cursor: pointer; }
+        button.secondary { background: #fff; color: #111; }
+        button:disabled { opacity: .6; cursor: not-allowed; }
+
+        .imgWrap { position: relative; }
+        img#img {
+            width: 100%;
+            height: auto;
+            max-height: 80vh;
+            display: block;
+            background: #111;
+            border-radius: 10px;
+            object-fit: contain;
+        }
+        .navBtn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            border-radius: 999px;
+            width: 42px;
+            height: 42px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(0,0,0,0.25);
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            cursor: pointer;
+            user-select: none;
+        }
+        .navBtn:hover { background: rgba(0,0,0,0.7); }
+        .navBtn.left { left: 10px; }
+        .navBtn.right { right: 10px; }
+        .imgCounter {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            display: none;
+            user-select: none;
+        }
+
+        details summary { cursor: pointer; font-weight: 600; }
+        details .content { margin-top: 8px; }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <div class="row">
+        <button id="nextBtn">Neste tilfeldig</button>
+        <div class="muted" id="status">Klar</div>
+    </div>
+
+    <div class="box" id="metaBox" style="display:none;">
+        <div class="row">
+            <div><strong>Alder:</strong> <span id="age">—</span></div>
+            <div><strong>Kjønn:</strong> <span id="sex">—</span></div>
+        </div>
+    </div>
+
+    <div class="box" id="oppBox" style="display:none;">
+        <strong>Opplysninger</strong>
+        <pre id="opp"></pre>
+    </div>
+
+    <div class="box" id="undBox" style="display:none;">
+        <strong>Undersøkelse</strong>
+        <pre id="und"></pre>
+    </div>
+
+    <div class="imgWrap" id="imgWrap" style="display:none;">
+        <img id="img" alt="" />
+        <button class="navBtn left" id="prevImg" aria-label="Forrige bilde">‹</button>
+        <button class="navBtn right" id="nextImg" aria-label="Neste bilde">›</button>
+        <div class="imgCounter" id="imgCounter"></div>
+    </div>
+
+    <button id="revealBtn" class="secondary">Vis fasit</button>
+
+    <div class="box" id="fasitBox" style="display:none;">
+        <div class="row" style="justify-content: space-between;">
+            <span class="muted" id="caseTitleInline"></span>
+        </div>
+
+        <div style="margin-top:10px;">
+            <div id="title" style="font-weight:700;">—</div>
+        </div>
+
+        <div style="margin-top:12px;">
+            <pre id="beskrivelse"></pre>
+        </div>
+
+        <div style="margin-top:12px;">
+            <details id="prosedyreDetails">
+                <summary>Prosedyre (valgfritt)</summary>
+                <div class="content">
+                    <pre id="prosedyre"></pre>
+                </div>
+            </details>
+        </div>
+    </div>
+</div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyC-fB79lPIUzssZmykLuKRBoqlgIBsvq2k",
+        authDomain: "radiologi-c6897.firebaseapp.com",
+        projectId: "radiologi-c6897",
+        storageBucket: "radiologi-c6897.firebasestorage.app",
+        messagingSenderId: "80517320937",
+        appId: "1:80517320937:web:a9526b0952be88f0396078"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const nextBtn = document.getElementById("nextBtn");
+    const revealBtn = document.getElementById("revealBtn");
+    const statusEl = document.getElementById("status");
+
+    const imgWrap = document.getElementById("imgWrap");
+    const imgEl = document.getElementById("img");
+    const prevImgBtn = document.getElementById("prevImg");
+    const nextImgBtn = document.getElementById("nextImg");
+    const imgCounter = document.getElementById("imgCounter");
+
+    const metaBox = document.getElementById("metaBox");
+    const ageEl = document.getElementById("age");
+    const sexEl = document.getElementById("sex");
+
+    const oppBox = document.getElementById("oppBox");
+    const undBox = document.getElementById("undBox");
+    const oppEl = document.getElementById("opp");
+    const undEl = document.getElementById("und");
+
+    const fasitBox = document.getElementById("fasitBox");
+    const caseTitleInline = document.getElementById("caseTitleInline");
+    const titleEl = document.getElementById("title");
+    const beskrivelseEl = document.getElementById("beskrivelse");
+    const prosedyreEl = document.getElementById("prosedyre");
+    const prosedyreDetails = document.getElementById("prosedyreDetails");
+
+    let cases = [];            // cache
+    let currentCase = null;    // current object
+    let imgUrls = [];          // urls for current case
+    let imgIdx = 0;            // current index
+    let revealed = false;      // fasit shown?
+
+    function setStatus(msg) {
+        statusEl.textContent = msg;
+    }
+
+    function pickRandom(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function normalizeCaseId(c) {
+        // Your import may set numeric id in c.id, but Firestore doc id is a string too.
+        // Prefer numeric field if present.
+        return (typeof c.id === "number" ? c.id : (Number.isFinite(+c.id) ? +c.id : c.id));
+    }
+
+    function getImageUrls(c) {
+        const arr = Array.isArray(c.images) ? c.images : [];
+        const urls = arr
+            .map(x => x?.downloadUrl || x?.url || x?.src)
+            .filter(Boolean);
+        // dedupe while preserving order
+        const seen = new Set();
+        const out = [];
+        for (const u of urls) {
+            if (!seen.has(u)) { seen.add(u); out.push(u); }
+        }
+        return out;
+    }
+
+    function renderImage() {
+        if (!imgUrls.length) {
+            imgWrap.style.display = "none";
+            imgEl.removeAttribute("src");
+            return;
+        }
+        imgWrap.style.display = "";
+        imgEl.src = imgUrls[imgIdx];
+        imgEl.alt = `Case ${normalizeCaseId(currentCase)}`;
+
+        const multiple = imgUrls.length > 1;
+        prevImgBtn.style.display = multiple ? "flex" : "none";
+        nextImgBtn.style.display = multiple ? "flex" : "none";
+        imgCounter.style.display = multiple ? "block" : "none";
+        if (multiple) imgCounter.textContent = `${imgIdx + 1}/${imgUrls.length}`;
+    }
+
+    function hideFasit() {
+        revealed = false;
+        fasitBox.style.display = "none";
+        revealBtn.textContent = "Vis fasit";
+        caseTitleInline.textContent = "";
+        prosedyreDetails.open = false;
+    }
+
+    function showFasit() {
+        if (!currentCase) return;
+        revealed = true;
+        fasitBox.style.display = "";
+        revealBtn.textContent = "Skjul fasit";
+
+        const t = currentCase.title ?? "—";
+        const b = currentCase.beskrivelse ?? "—";
+        const p = currentCase.prosedyre ?? "—";
+
+        titleEl.textContent = t || "—";
+        beskrivelseEl.textContent = b || "—";
+        prosedyreEl.textContent = p || "—";
+
+        // optional small inline display
+        caseTitleInline.textContent = "";
+    }
+
+    function renderCase(c) {
+        currentCase = c;
+        imgUrls = getImageUrls(c);
+        imgIdx = 0;
+        hideFasit();
+
+        // Caseinfo
+        const age = c.age ?? "—";
+        const sex = c.sex ?? "—";
+        const opp = c.opplysninger ?? "—";
+        const und = c.undersokelse ?? "—";
+
+        ageEl.textContent = age || "—";
+        sexEl.textContent = sex || "—";
+        oppEl.textContent = opp || "—";
+        undEl.textContent = und || "—";
+
+        metaBox.style.display = "";
+        oppBox.style.display = "";
+        undBox.style.display = "";
+
+        renderImage();
+
+        setStatus(`Viser tilfeldig case: ${normalizeCaseId(c)}`);
+    }
+
+    function prevImage() {
+        if (!imgUrls.length) return;
+        imgIdx = (imgIdx - 1 + imgUrls.length) % imgUrls.length;
+        renderImage();
+    }
+
+    function nextImage() {
+        if (!imgUrls.length) return;
+        imgIdx = (imgIdx + 1) % imgUrls.length;
+        renderImage();
+    }
+
+    prevImgBtn.addEventListener("click", prevImage);
+    nextImgBtn.addEventListener("click", nextImage);
+
+    // Keyboard navigation (optional)
+    window.addEventListener("keydown", (e) => {
+        if (!currentCase) return;
+        if (e.key === "ArrowLeft") prevImage();
+        if (e.key === "ArrowRight") nextImage();
+    });
+
+    revealBtn.addEventListener("click", () => {
+        if (!currentCase) return;
+        if (revealed) hideFasit();
+        else showFasit();
+    });
+
+    async function loadAllCasesOnce() {
+        if (cases.length) return cases;
+
+        setStatus("Laster cases fra Firestore…");
+        nextBtn.disabled = true;
+        revealBtn.disabled = true;
+
+        const snap = await getDocs(collection(db, "cases"));
+        cases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        nextBtn.disabled = false;
+        revealBtn.disabled = false;
+        setStatus(`Lastet ${cases.length} cases`);
+        return cases;
+    }
+
+    async function nextRandom() {
+        try {
+            const all = await loadAllCasesOnce();
+            if (!all.length) {
+                setStatus("Fant ingen cases i Firestore (collection: cases).");
+                return;
+            }
+            renderCase(pickRandom(all));
+        } catch (e) {
+            console.error(e);
+            setStatus("Feil: " + (e?.message || e));
+        }
+    }
+
+    nextBtn.addEventListener("click", nextRandom);
+
+    // Start med én tilfeldig
+    nextRandom();
+</script>
+</body>
+</html>
