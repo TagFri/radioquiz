@@ -12,12 +12,90 @@
         .box { border: 1px solid #ddd; border-radius: 10px; padding: 12px; }
         pre { white-space: pre-wrap; margin: 0; }
 
-        button { padding: 10px 14px; border-radius: 10px; border: 1px solid #111; background: #111; color: #fff; cursor: pointer; }
+        button { 
+            padding: 10px 14px; 
+            border-radius: 10px; 
+            border: 1px solid #111; 
+            background: #111; 
+            color: #fff; 
+            cursor: pointer; 
+            display: inline-flex; 
+            align-items: center; 
+            justify-content: center; 
+            min-height: 40px; 
+            user-select: none; 
+            -webkit-user-select: none;
+            font-family: inherit;
+        }
         button.secondary { background: #fff; color: #111; }
+        button.outline { background: transparent; color: #111; border: 1px solid #ddd; }
         button:disabled { opacity: .6; cursor: not-allowed; }
+        .bmc-button { height: 40px !important; line-height: 40px !important; font-size: 14px !important; display: inline-flex !important; align-items: center !important; border-radius: 10px !important; }
+
+        .header { border-bottom: 1px solid #eee; margin-bottom: 10px; }
+        .header-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; gap: 10px; }
+        .header-row .left, .header-row .middle, .header-row .right { display: flex; gap: 10px; align-items: center; flex: 1; }
+        .header-row .middle { justify-content: center; }
+        .header-row .right { justify-content: flex-end; }
+        .mode-selector { background: #f9f9f9; padding: 10px; border-radius: 10px; margin-bottom: 12px; }
+        .rating-btns { display: flex; gap: 8px; margin-top: 15px; width: 100%; }
+        .rating-btns button { flex: 1; padding: 12px 5px; font-size: 13px; }
+        .btn-easy { background: #28a745; border-color: #28a745; }
+        .btn-hard { background: #ffc107; border-color: #ffc107; color: #000; }
+        .btn-impossible { background: #dc3545; border-color: #dc3545; }
+        .btn-super-easy { background: #007bff; border-color: #007bff; }
+
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 140px;
+            height: 34px;
+            flex-shrink: 0;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 4px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 66px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 34px;
+            z-index: 1;
+        }
+        input:checked + .slider { background-color: #444; }
+        input:checked + .slider:before { transform: translateX(66px); }
+        .slider .label-left, .slider .label-right {
+            z-index: 2;
+            flex: 1;
+            text-align: center;
+            transition: color 0.4s;
+            white-space: nowrap;
+        }
+        input:not(:checked) + .slider .label-left { color: #111; }
+        input:checked + .slider .label-right { color: #fff; }
+        input:not(:checked) + .slider .label-right { color: #666; }
+        input:checked + .slider .label-left { color: #ccc; }
 
         .imgWrap { position: relative; }
-        img#img {
+        .case-img {
             width: 100%;
             height: auto;
             max-height: 80vh;
@@ -58,26 +136,72 @@
             user-select: none;
         }
 
+        .imgLabel {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            background: rgba(0,0,0,0.55);
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 18px;
+            font-weight: bold;
+            display: none;
+            user-select: none;
+            pointer-events: none;
+        }
+
         details summary { cursor: pointer; font-weight: 600; }
         details .content { margin-top: 8px; }
+
+        #sr-status { font-weight: 600; color: #111; }
+        .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity 0.3s; z-index: 1000; pointer-events: none; }
     </style>
 </head>
 <body>
+<div id="toast" class="toast"></div>
 <div class="wrap">
-    <div class="row">
-        <button id="nextBtn">Neste tilfeldig</button>
-        <div class="muted" id="status">Klar</div>
-    </div>
-
-    <div class="box" id="metaBox" style="display:none;">
-        <div class="row">
-            <div><strong>Alder:</strong> <span id="age">—</span></div>
-            <div><strong>Kjønn:</strong> <span id="sex">—</span></div>
+    <div class="header">
+        <div class="header-row row-1">
+            <div class="left">
+                <div id="userInfo" class="muted">Laster bruker...</div>
+            </div>
+            <div class="middle">
+                <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="sablaflott" data-color="#FFDD00" data-emoji="☕"  data-font="Cookie" data-text="Spander en kaffe :) " data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>
+            </div>
+            <div class="right">
+                <button id="loginBtn" type="button" style="display:none;">Logg inn</button>
+                <button class="logoutBtn outline" type="button" style="display:none;">Logg ut</button>
+            </div>
+        </div>
+        <div style="padding: 4px 0;">
+            <div class="muted" id="status"></div>
         </div>
     </div>
 
+    <div class="header-row row-2" id="row2" style="display:none;">
+        <div class="left">
+            <div id="modeToggleContainer">
+                <label class="switch">
+                    <input type="checkbox" id="modeCheckbox">
+                    <span class="slider">
+                        <span class="label-left">Øving</span>
+                        <span class="label-right">Kun nye</span>
+                      </span>
+                </label>
+            </div>
+        </div>
+        <div class="middle">
+            <div class="muted" id="sr-status" style="display:none;"></div>
+        </div>
+        <div class="right">
+            <button id="deleteProgressBtn" type="button" class="outline" style="color: #dc3545; border-color: #dc3545; font-size: 12px; padding: 8px 10px;">Slett progresjon</button>
+        </div>
+    </div>
+
+
     <div class="box" id="oppBox" style="display:none;">
-        <strong>Opplysninger</strong>
+        <strong id="oppTitle">Opplysninger</strong>
         <pre id="opp"></pre>
     </div>
 
@@ -87,19 +211,15 @@
     </div>
 
     <div class="imgWrap" id="imgWrap" style="display:none;">
-        <img id="img" alt="" />
-        <button class="navBtn left" id="prevImg" aria-label="Forrige bilde">‹</button>
-        <button class="navBtn right" id="nextImg" aria-label="Neste bilde">›</button>
+        <button class="navBtn left" id="prevImg" type="button" aria-label="Forrige bilde">‹</button>
+        <button class="navBtn right" id="nextImg" type="button" aria-label="Neste bilde">›</button>
         <div class="imgCounter" id="imgCounter"></div>
+        <div class="imgLabel" id="imgLabel"></div>
     </div>
 
-    <button id="revealBtn" class="secondary">Vis fasit</button>
+    <button id="revealBtn" type="button" class="secondary">Vis fasit</button>
 
     <div class="box" id="fasitBox" style="display:none;">
-        <div class="row" style="justify-content: space-between;">
-            <span class="muted" id="caseTitleInline"></span>
-        </div>
-
         <div style="margin-top:10px;">
             <div id="title" style="font-weight:700;">—</div>
         </div>
@@ -116,12 +236,21 @@
                 </div>
             </details>
         </div>
+
+        <div class="rating-btns" id="ratingBtns" style="display:none;">
+            <button class="btn-super-easy" type="button" onclick="rateCase('super_easy')">Superlett</button>
+            <button class="btn-easy" type="button" onclick="rateCase('easy')">Lett</button>
+            <button class="btn-hard" type="button" onclick="rateCase('hard')">Vanskelig</button>
+            <button class="btn-impossible" type="button" onclick="rateCase('not_possible')">Ikke mulig</button>
+        </div>
     </div>
+    <button id="nextBtn" type="button" style="margin-top: 20px; display: none;">Neste case</button>
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-    import { getFirestore, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, collection, serverTimestamp, onSnapshot, enableMultiTabIndexedDbPersistence } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
     const firebaseConfig = {
         apiKey: "AIzaSyC-fB79lPIUzssZmykLuKRBoqlgIBsvq2k",
@@ -134,44 +263,183 @@
 
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
+    const auth = getAuth(app);
+
+    // Enable persistence to reduce reads and allow offline access
+    enableMultiTabIndexedDbPersistence(db).catch((err) => {
+        if (err.code === 'failed-precondition') {
+            console.warn("Persistence failed: Multiple tabs open.");
+        } else if (err.code === 'unimplemented') {
+            console.warn("Persistence failed: Browser doesn't support it.");
+        }
+    });
+
+    const provider = new GoogleAuthProvider();
+    provider.setCustomParameters({ prompt: 'select_account' });
 
     const nextBtn = document.getElementById("nextBtn");
     const revealBtn = document.getElementById("revealBtn");
     const statusEl = document.getElementById("status");
+    const srStatusEl = document.getElementById("sr-status");
+    const userInfoEl = document.getElementById("userInfo");
+    const loginBtn = document.getElementById("loginBtn");
+    const logoutBtns = document.querySelectorAll(".logoutBtn");
+    const row2 = document.getElementById("row2");
+    const modeCheckbox = document.getElementById("modeCheckbox");
+    const ratingBtns = document.getElementById("ratingBtns");
+    const toastEl = document.getElementById("toast");
+    const deleteProgressBtn = document.getElementById("deleteProgressBtn");
 
     const imgWrap = document.getElementById("imgWrap");
-    const imgEl = document.getElementById("img");
     const prevImgBtn = document.getElementById("prevImg");
     const nextImgBtn = document.getElementById("nextImg");
     const imgCounter = document.getElementById("imgCounter");
-
-    const metaBox = document.getElementById("metaBox");
-    const ageEl = document.getElementById("age");
-    const sexEl = document.getElementById("sex");
+    const imgLabel = document.getElementById("imgLabel");
 
     const oppBox = document.getElementById("oppBox");
     const undBox = document.getElementById("undBox");
     const oppEl = document.getElementById("opp");
     const undEl = document.getElementById("und");
+    const oppTitle = document.getElementById("oppTitle");
 
     const fasitBox = document.getElementById("fasitBox");
-    const caseTitleInline = document.getElementById("caseTitleInline");
     const titleEl = document.getElementById("title");
     const beskrivelseEl = document.getElementById("beskrivelse");
     const prosedyreEl = document.getElementById("prosedyre");
     const prosedyreDetails = document.getElementById("prosedyreDetails");
 
-    let cases = [];            // cache
+    let allCaseIds = [];       // just IDs from metadata
+    let userProgress = {};     // caseId -> progressDoc
+    let progressListener = null; // Unsubscribe function
+    let metadataListener = null; // Unsubscribe function
     let currentCase = null;    // current object
     let imgUrls = [];          // urls for current case
     let imgIdx = 0;            // current index
     let revealed = false;      // fasit shown?
+    let user = null;
+    let mode = localStorage.getItem("radiologiMode") || "normal"; // normal | newOnly
+    let ratingBusy = false;
 
     function setStatus(msg) {
-        statusEl.textContent = msg;
+        if (statusEl) statusEl.textContent = msg;
+        console.log("Status update:", msg);
     }
 
+    function showToast(msg) {
+        toastEl.textContent = msg;
+        toastEl.style.opacity = "1";
+        setTimeout(() => toastEl.style.opacity = "0", 2500);
+    }
+
+    function updateModeUI() {
+        modeCheckbox.checked = (mode === "newOnly");
+        updateStatusLine();
+    }
+
+    function updateStatusLine() {
+        if (!user) {
+            srStatusEl.style.display = "none";
+            return;
+        }
+        const now = new Date();
+        const dueCount = allCaseIds.filter(id => {
+            const p = userProgress[id];
+            return p && p.nextDueAt && p.nextDueAt.toDate() <= now;
+        }).length;
+        const newCount = allCaseIds.filter(id => !userProgress[id]).length;
+        
+        srStatusEl.style.display = "block";
+        srStatusEl.textContent = `Due: ${dueCount} | Nye: ${newCount} (${allCaseIds.length} totalt)`;
+    }
+
+    // Auth logic
+    loginBtn.addEventListener("click", async () => {
+        try {
+            await signInWithPopup(auth, provider);
+        } catch (e) {
+            console.error("Firebase Auth Error:", e);
+            let msg = "Innlogging feilet";
+            if (e.code === "auth/unauthorized-domain") {
+                msg = "Feil: Domenet er ikke godkjent i Firebase Console.";
+            } else if (e.code === "auth/popup-closed-by-user") {
+                return;
+            } else if (e.code === "auth/operation-not-allowed") {
+                msg = "Feil: Google-innlogging er ikke aktivert i Firebase.";
+            } else {
+                msg += ": " + (e.code || "Ukjent feil");
+            }
+            showToast(msg);
+        }
+    });
+
+    logoutBtns.forEach(btn => btn.addEventListener("click", () => signOut(auth)));
+
+    if (window.location.protocol === 'file:') {
+        console.warn("Firebase Auth fungerer ofte ikke via file:// protokollen.");
+    }
+
+    let authInitialized = false;
+    onAuthStateChanged(auth, async (u) => {
+        user = u;
+        if (u) {
+            userInfoEl.textContent = `${u.email}`;
+            loginBtn.style.display = "none";
+            logoutBtns.forEach(btn => btn.style.display = "block");
+            row2.style.display = "flex";
+            await fetchUserProgress();
+        } else {
+            userInfoEl.textContent = "Logg inn for å vise progresjon";
+            loginBtn.style.display = "block";
+            logoutBtns.forEach(btn => btn.style.display = "none");
+            row2.style.display = "none";
+            userProgress = {};
+            if (progressListener) {
+                progressListener();
+                progressListener = null;
+            }
+        }
+        updateModeUI();
+        
+        if (allCaseIds.length === 0) {
+            await loadMetadata();
+        } else {
+            updateStatusLine();
+        }
+
+        if (!authInitialized) {
+            authInitialized = true;
+            nextCase();
+        }
+    });
+
+    async function fetchUserProgress() {
+        if (!user) return;
+        if (progressListener) progressListener();
+        
+        return new Promise((resolve) => {
+            progressListener = onSnapshot(collection(db, `users/${user.uid}/caseProgress`), (snap) => {
+                userProgress = {};
+                snap.forEach(doc => {
+                    userProgress[doc.id] = doc.data();
+                });
+                updateStatusLine();
+                resolve(userProgress);
+            }, (e) => {
+                console.error("Feil ved henting av progresjon", e);
+                resolve({});
+            });
+        });
+    }
+
+    modeCheckbox.onchange = () => {
+        mode = modeCheckbox.checked ? "newOnly" : "normal";
+        localStorage.setItem("radiologiMode", mode);
+        updateModeUI();
+        nextCase();
+    };
+
     function pickRandom(arr) {
+        if (!arr.length) return null;
         return arr[Math.floor(Math.random() * arr.length)];
     }
 
@@ -196,28 +464,36 @@
     }
 
     function renderImage() {
-        if (!imgUrls.length) {
+        const imgs = imgWrap.querySelectorAll('.case-img');
+        if (!imgs.length) {
             imgWrap.style.display = "none";
-            imgEl.removeAttribute("src");
             return;
         }
         imgWrap.style.display = "";
-        imgEl.src = imgUrls[imgIdx];
-        imgEl.alt = `Case ${normalizeCaseId(currentCase)}`;
+
+        imgs.forEach((img, i) => {
+            img.style.display = (i === imgIdx) ? "block" : "none";
+        });
 
         const multiple = imgUrls.length > 1;
         prevImgBtn.style.display = multiple ? "flex" : "none";
         nextImgBtn.style.display = multiple ? "flex" : "none";
         imgCounter.style.display = multiple ? "block" : "none";
-        if (multiple) imgCounter.textContent = `${imgIdx + 1}/${imgUrls.length}`;
+        imgLabel.style.display = multiple ? "block" : "none";
+        
+        if (multiple) {
+            imgCounter.textContent = `${imgIdx + 1}/${imgUrls.length}`;
+            imgLabel.textContent = String.fromCharCode(65 + imgIdx); // A, B, C...
+        }
     }
 
     function hideFasit() {
         revealed = false;
         fasitBox.style.display = "none";
         revealBtn.textContent = "Vis fasit";
-        caseTitleInline.textContent = "";
         prosedyreDetails.open = false;
+        ratingBtns.style.display = "none";
+        nextBtn.style.display = "none";
     }
 
     function showFasit() {
@@ -234,15 +510,132 @@
         beskrivelseEl.textContent = b || "—";
         prosedyreEl.textContent = p || "—";
 
-        // optional small inline display
-        caseTitleInline.textContent = "";
+        if (user) {
+            ratingBtns.style.display = "flex";
+            setTimeout(() => {
+                ratingBtns.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 50);
+        } else {
+            nextBtn.style.display = "block";
+            setTimeout(() => {
+                nextBtn.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }, 50);
+        }
     }
 
+    const easyIntervals = [1, 3, 7, 14, 30];
+
+    window.rateCase = async (rating) => {
+        if (!user || !currentCase || ratingBusy) return;
+        ratingBusy = true;
+        
+        const btns = ratingBtns.querySelectorAll('button');
+        btns.forEach(b => b.disabled = true);
+        
+        const caseId = String(currentCase.id);
+        const progress = userProgress[caseId] || {
+            status: "not_done",
+            rating: null,
+            repetitions: 0,
+            lapses: 0,
+            easeFactor: 2.5,
+            intervalDays: 0
+        };
+
+        let { repetitions, lapses, easeFactor, intervalDays } = progress;
+
+        if (rating === "super_easy") {
+            if (repetitions < easyIntervals.length) {
+                intervalDays = easyIntervals[repetitions] * 2;
+            } else {
+                intervalDays = Math.round(intervalDays * easeFactor * 1.5);
+            }
+            repetitions++;
+            easeFactor = Math.min(5.0, easeFactor + 0.5);
+        } else if (rating === "easy") {
+            if (repetitions < easyIntervals.length) {
+                intervalDays = easyIntervals[repetitions];
+            } else {
+                intervalDays = Math.round(intervalDays * easeFactor);
+            }
+            repetitions++;
+            easeFactor = Math.min(3.0, easeFactor + 0.1);
+        } else if (rating === "hard") {
+            lapses++;
+            intervalDays = 2; 
+            easeFactor = Math.max(1.3, easeFactor - 0.2);
+        } else if (rating === "not_possible") {
+            lapses++;
+            repetitions = 0;
+            intervalDays = 1;
+            easeFactor = Math.max(1.3, easeFactor - 0.5);
+        }
+
+        const nextDueAt = new Date(Date.now() + intervalDays * 24 * 60 * 60 * 1000);
+
+        const newProgress = {
+            status: "done",
+            rating: rating,
+            lastReviewedAt: serverTimestamp(),
+            nextDueAt: nextDueAt,
+            intervalDays: intervalDays,
+            easeFactor: easeFactor,
+            repetitions: repetitions,
+            lapses: lapses
+        };
+
+        try {
+            await setDoc(doc(db, `users/${user.uid}/caseProgress`, caseId), newProgress);
+            userProgress[caseId] = { ...newProgress, nextDueAt: { toDate: () => nextDueAt } };
+            showToast(`Lagret – neste repetisjon: ${nextDueAt.toLocaleDateString('no-NO')}`);
+            updateStatusLine();
+            setTimeout(() => {
+                nextCase();
+            }, 800);
+        } catch (e) {
+            console.error(e);
+            showToast("Kunne ikke lagre progresjon");
+            btns.forEach(b => b.disabled = false);
+            ratingBusy = false;
+        }
+    };
+
     function renderCase(c) {
+        ratingBusy = false;
+        // Alltid re-aktiver knapper når en ny case rendres
+        if (revealBtn) revealBtn.disabled = false;
+        if (nextBtn) nextBtn.disabled = false;
+        if (ratingBtns) {
+            ratingBtns.querySelectorAll('button').forEach(b => b.disabled = false);
+        }
+
+        if (!c) {
+            currentCase = null;
+            setStatus("Ingen flere caser i denne modusen.");
+            oppBox.style.display = "none";
+            undBox.style.display = "none";
+            imgWrap.style.display = "none";
+            imgWrap.querySelectorAll('.case-img').forEach(img => img.remove());
+            revealBtn.style.display = "none";
+            hideFasit();
+            return;
+        }
         currentCase = c;
+        revealBtn.style.display = "";
         imgUrls = getImageUrls(c);
         imgIdx = 0;
         hideFasit();
+
+        // Clear and create images for simultaneous loading
+        imgWrap.querySelectorAll('.case-img').forEach(img => img.remove());
+        imgUrls.forEach((url, i) => {
+            const newImg = document.createElement('img');
+            newImg.src = url;
+            newImg.className = 'case-img';
+            newImg.style.display = 'none';
+            newImg.alt = `Case ${normalizeCaseId(c)} - Bilde ${String.fromCharCode(65 + i)}`;
+            imgWrap.insertBefore(newImg, prevImgBtn);
+        });
 
         // Caseinfo
         const age = c.age ?? "—";
@@ -250,82 +643,176 @@
         const opp = c.opplysninger ?? "—";
         const und = c.undersokelse ?? "—";
 
-        ageEl.textContent = age || "—";
-        sexEl.textContent = sex || "—";
-        oppEl.textContent = opp || "—";
+        oppTitle.textContent = `Case ${normalizeCaseId(c)}`;
+        oppEl.textContent = `${age} år gammel ${sex}. ${opp}`;
         undEl.textContent = und || "—";
 
-        metaBox.style.display = "";
         oppBox.style.display = "";
         undBox.style.display = "";
 
         renderImage();
+        setTimeout(() => {
+            oppBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
 
-        setStatus(`Viser tilfeldig case: ${normalizeCaseId(c)}`);
+        const p = userProgress[c.id];
+        let statusText = "";
+        if (p && p.nextDueAt) {
+            statusText = `Repetisjon, skyldes: ${p.nextDueAt.toDate().toLocaleDateString('no-NO')}`;
+        }
+        setStatus(statusText);
     }
 
-    function prevImage() {
-        if (!imgUrls.length) return;
-        imgIdx = (imgIdx - 1 + imgUrls.length) % imgUrls.length;
-        renderImage();
+    async function nextCase() {
+        try {
+            const ids = await loadMetadata();
+            if (!ids.length) {
+                // Feilmelding er allerede satt i loadMetadata
+                return;
+            }
+
+            let pool = ids;
+            if (user) {
+                const now = new Date();
+                const dueIds = ids.filter(id => {
+                    const p = userProgress[id];
+                    return p && p.nextDueAt && p.nextDueAt.toDate() <= now;
+                });
+                const newIds = ids.filter(id => !userProgress[id]);
+
+                if (mode === "newOnly") {
+                    pool = newIds;
+                } else {
+                    // Normal mode: due first, then new
+                    pool = dueIds.length > 0 ? dueIds : newIds;
+                }
+            }
+
+            if (pool.length === 0) {
+                renderCase(null);
+            } else {
+                const targetId = pickRandom(pool);
+                setStatus(`Laster case ${targetId}...`);
+                nextBtn.disabled = true;
+                revealBtn.disabled = true;
+                
+                const c = await fetchCaseById(targetId);
+                renderCase(c);
+            }
+        } catch (e) {
+            console.error(e);
+            setStatus("Feil: " + (e?.message || e));
+            nextBtn.disabled = false;
+            revealBtn.disabled = false;
+        }
     }
 
-    function nextImage() {
-        if (!imgUrls.length) return;
-        imgIdx = (imgIdx + 1) % imgUrls.length;
-        renderImage();
+    let metadataPromise = null;
+    async function loadMetadata() {
+        if (allCaseIds.length) return allCaseIds;
+        if (metadataPromise) return metadataPromise;
+
+        metadataPromise = new Promise((resolve, reject) => {
+            setStatus("Laster konfigurasjon…");
+            nextBtn.disabled = true;
+            revealBtn.disabled = true;
+
+            // Fetch a single metadata document that lists all case IDs
+            metadataListener = onSnapshot(doc(db, "metadata", "config"), (snap) => {
+                if (snap.exists()) {
+                    allCaseIds = snap.data().allCaseIds || [];
+                } else {
+                    console.warn("metadata/config not found.");
+                    allCaseIds = [];
+                }
+                
+                nextBtn.disabled = false;
+                nextBtn.style.display = "block";
+                revealBtn.disabled = false;
+                setStatus(allCaseIds.length ? "" : "Fant ingen caser. Kjør import_cases.js.");
+                updateStatusLine();
+                
+                resolve(allCaseIds);
+            }, (e) => {
+                console.error(e);
+                setStatus("Kunne ikke laste konfigurasjon: " + e.message);
+                metadataPromise = null;
+                nextBtn.disabled = false;
+                revealBtn.disabled = false;
+                reject(e);
+            });
+        });
+        return metadataPromise;
     }
 
-    prevImgBtn.addEventListener("click", prevImage);
-    nextImgBtn.addEventListener("click", nextImage);
+    async function fetchCaseById(caseId) {
+        // Individual case fetch (benefitting from persistence/cache)
+        const d = await getDoc(doc(db, "cases", String(caseId)));
+        if (!d.exists()) {
+            throw new Error(`Case ${caseId} finnes ikke i Firestore.`);
+        }
+        return { id: d.id, ...d.data() };
+    }
 
-    // Keyboard navigation (optional)
-    window.addEventListener("keydown", (e) => {
-        if (!currentCase) return;
-        if (e.key === "ArrowLeft") prevImage();
-        if (e.key === "ArrowRight") nextImage();
+    nextBtn.addEventListener("click", nextCase);
+    deleteProgressBtn.addEventListener("click", async () => {
+        if (!user || !confirm("Er du sikker på at du vil slette ALL progresjon? Dette kan ikke angres.")) return;
+        
+        try {
+            const snap = await getDocs(collection(db, `users/${user.uid}/caseProgress`));
+            const deletePromises = [];
+            snap.forEach(docSnap => {
+                deletePromises.push(deleteDoc(doc(db, `users/${user.uid}/caseProgress`, docSnap.id)));
+            });
+            await Promise.all(deletePromises);
+            userProgress = {};
+            updateStatusLine();
+            showToast("Progresjon slettet");
+            nextCase();
+        } catch (e) {
+            console.error("Feil ved sletting av progresjon", e);
+            showToast("Kunne ikke slette progresjon");
+        }
     });
 
     revealBtn.addEventListener("click", () => {
-        if (!currentCase) return;
         if (revealed) hideFasit();
         else showFasit();
     });
 
-    async function loadAllCasesOnce() {
-        if (cases.length) return cases;
+    prevImgBtn.onclick = () => {
+        if (imgUrls.length <= 1) return;
+        imgIdx = (imgIdx - 1 + imgUrls.length) % imgUrls.length;
+        renderImage();
+    };
+    nextImgBtn.onclick = () => {
+        if (imgUrls.length <= 1) return;
+        imgIdx = (imgIdx + 1) % imgUrls.length;
+        renderImage();
+    };
 
-        setStatus("Laster cases fra Firestore…");
-        nextBtn.disabled = true;
-        revealBtn.disabled = true;
-
-        const snap = await getDocs(collection(db, "cases"));
-        cases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
-
-        nextBtn.disabled = false;
-        revealBtn.disabled = false;
-        setStatus(`Lastet ${cases.length} cases`);
-        return cases;
-    }
-
-    async function nextRandom() {
-        try {
-            const all = await loadAllCasesOnce();
-            if (!all.length) {
-                setStatus("Fant ingen cases i Firestore (collection: cases).");
-                return;
+    window.addEventListener("keydown", (e) => {
+        if (e.code === "Space") {
+            e.preventDefault();
+            if (!revealed) {
+                showFasit();
+            } else if (user) {
+                rateCase('easy');
+            } else {
+                nextCase();
             }
-            renderCase(pickRandom(all));
-        } catch (e) {
-            console.error(e);
-            setStatus("Feil: " + (e?.message || e));
+        } else if (e.code === "ArrowRight") {
+            if (imgUrls.length > 1) {
+                imgIdx = (imgIdx + 1) % imgUrls.length;
+                renderImage();
+            }
+        } else if (e.code === "ArrowLeft") {
+            if (imgUrls.length > 1) {
+                imgIdx = (imgIdx - 1 + imgUrls.length) % imgUrls.length;
+                renderImage();
+            }
         }
-    }
-
-    nextBtn.addEventListener("click", nextRandom);
-
-    // Start med én tilfeldig
-    nextRandom();
+    });
 </script>
 </body>
 </html>
