@@ -45,54 +45,6 @@
         .btn-impossible { background: #dc3545; border-color: #dc3545; }
         .btn-super-easy { background: #007bff; border-color: #007bff; }
 
-        /* Toggle Switch */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 140px;
-            height: 34px;
-            flex-shrink: 0;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 34px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 0 4px;
-            font-size: 11px;
-            font-weight: bold;
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 26px;
-            width: 66px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 34px;
-            z-index: 1;
-        }
-        input:checked + .slider { background-color: #444; }
-        input:checked + .slider:before { transform: translateX(66px); }
-        .slider .label-left, .slider .label-right {
-            z-index: 2;
-            flex: 1;
-            text-align: center;
-            transition: color 0.4s;
-            white-space: nowrap;
-        }
-        input:not(:checked) + .slider .label-left { color: #111; }
-        input:checked + .slider .label-right { color: #fff; }
-        input:not(:checked) + .slider .label-right { color: #666; }
-        input:checked + .slider .label-left { color: #ccc; }
 
         .imgWrap { position: relative; }
         .case-img {
@@ -164,47 +116,30 @@
     <div class="header">
         <div class="header-row row-1">
             <div class="left">
+                <div class="muted" id="sr-status" style="display:none;"></div>
                 <div id="userInfo" class="muted">Laster bruker...</div>
             </div>
-
-            <div class="middle">
-                <button id="reportErrorBtn" type="button" class="outline" style="display:none; font-size: 12px; padding: 8px 10px;">Rapporter feil/tips</button>
-                <!-- <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="sablaflott" data-color="#FFDD00" data-emoji="☕"  data-font="Cookie" data-text="Spander en kaffe :) " data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>-->
-             </div>
-
             <div class="right">
+                <button id="deleteProgressBtn" type="button" class="outline" style="display:none; color: #dc3545; border-color: #dc3545; font-size: 12px; padding: 8px 10px;">Slett progresjon</button>
+                <button id="reportErrorBtn" type="button" class="outline" style="display:none; font-size: 12px; padding: 8px 10px;">Rapporter feil/tips</button>
                 <button id="loginBtn" type="button" style="display:none;">Logg inn</button>
                 <button class="logoutBtn outline" type="button" style="display:none;">Logg ut</button>
             </div>
         </div>
-        <div style="padding: 4px 0;">
-            <div class="muted" id="status"></div>
-        </div>
     </div>
 
-    <div class="header-row row-2" id="row2" style="display:none;">
-        <div class="left">
-            <div id="modeToggleContainer">
-                <label class="switch">
-                    <input type="checkbox" id="modeCheckbox">
-                    <span class="slider">
-                        <span class="label-left">Øving</span>
-                        <span class="label-right">Kun nye</span>
-                      </span>
-                </label>
-            </div>
-        </div>
-        <div class="middle">
-            <div class="muted" id="sr-status" style="display:none;"></div>
+    <div class="header-row row-2" id="row2">
+        <div class="left" style="flex: 3; display: flex; gap: 10px;">
+            <input type="text" id="caseSearchInput" placeholder="Søk på casenummer..." list="caseList" style="width: 50%; padding: 10px; border-radius: 10px; border: 1px solid #ddd; font-family: inherit; font-size: 14px; box-sizing: border-box;">
+            <datalist id="caseList"></datalist>
+            <button id="searchBtn" type="button" class="outline" style="font-size: 14px;">Åpne case</button>
         </div>
         <div class="right">
-            <button id="deleteProgressBtn" type="button" class="outline" style="color: #dc3545; border-color: #dc3545; font-size: 12px; padding: 8px 10px;">Slett progresjon</button>
         </div>
     </div>
 
-
     <div class="box" id="oppBox" style="display:none;">
-        <strong id="oppTitle">Opplysninger</strong>
+        <strong id="oppTitle">Opplysninger</strong> <span class="muted" id="status"></span>
         <pre id="opp"></pre>
     </div>
 
@@ -292,11 +227,13 @@
     const loginBtn = document.getElementById("loginBtn");
     const logoutBtns = document.querySelectorAll(".logoutBtn");
     const row2 = document.getElementById("row2");
-    const modeCheckbox = document.getElementById("modeCheckbox");
     const ratingBtns = document.getElementById("ratingBtns");
     const toastEl = document.getElementById("toast");
     const deleteProgressBtn = document.getElementById("deleteProgressBtn");
     const reportErrorBtn = document.getElementById("reportErrorBtn");
+    const caseSearchInput = document.getElementById("caseSearchInput");
+    const searchBtn = document.getElementById("searchBtn");
+    const caseList = document.getElementById("caseList");
 
     const imgWrap = document.getElementById("imgWrap");
     const prevImgBtn = document.getElementById("prevImg");
@@ -326,20 +263,21 @@
     let imgIdx = 0;            // current index
     let revealed = false;      // fasit shown?
     let user = null;
-    let mode = localStorage.getItem("radiologiMode") || "normal"; // normal | newOnly
     let ratingBusy = false;
 
     function calculateNextInterval(rating, progress) {
-        const { repetitions, intervalDays, easeFactor } = progress;
+        const repetitions = progress.repetitions || 0;
+        const intervalDays = progress.intervalDays || 0;
+        const easeFactor = progress.easeFactor || 2.5;
         
         if (repetitions === 0) {
-            if (rating === 'not_possible') return 30 / 1440;
-            if (rating === 'hard') return 2;
-            if (rating === 'easy') return 5;
-            if (rating === 'super_easy') return 10;
+            if (rating === 'not_possible') return 1;
+            if (rating === 'hard') return 3;
+            if (rating === 'easy') return 10;
+            if (rating === 'super_easy') return 365;
         }
         
-        if (rating === 'not_possible') return 30 / 1440;
+        if (rating === 'not_possible') return 1;
         
         let res;
         if (rating === 'hard') res = Math.max(intervalDays * 1.2, intervalDays + 1);
@@ -351,6 +289,7 @@
     }
 
     function formatInterval(days) {
+        if (days >= 365) return "Ikke repeter";
         if (days < 0.05) { // Rundt 1 time eller mindre
             const mins = Math.round(days * 1440);
             return mins + " min";
@@ -376,11 +315,6 @@
         toastEl.textContent = msg;
         toastEl.style.opacity = "1";
         setTimeout(() => toastEl.style.opacity = "0", 2500);
-    }
-
-    function updateModeUI() {
-        modeCheckbox.checked = (mode === "newOnly");
-        updateStatusLine();
     }
 
     function updateStatusLine() {
@@ -429,23 +363,23 @@
     onAuthStateChanged(auth, async (u) => {
         user = u;
         if (u) {
-            userInfoEl.textContent = `${u.email}`;
+            userInfoEl.textContent = "";
             loginBtn.style.display = "none";
             logoutBtns.forEach(btn => btn.style.display = "block");
-            row2.style.display = "flex";
+            deleteProgressBtn.style.display = "block";
             await fetchUserProgress();
         } else {
             userInfoEl.textContent = "Logg inn for å vise progresjon";
             loginBtn.style.display = "block";
             logoutBtns.forEach(btn => btn.style.display = "none");
-            row2.style.display = "none";
+            deleteProgressBtn.style.display = "none";
             userProgress = {};
             if (progressListener) {
                 progressListener();
                 progressListener = null;
             }
         }
-        updateModeUI();
+        updateStatusLine();
         
         if (allCaseIds.length === 0) {
             await loadMetadata();
@@ -478,12 +412,6 @@
         });
     }
 
-    modeCheckbox.onchange = () => {
-        mode = modeCheckbox.checked ? "newOnly" : "normal";
-        localStorage.setItem("radiologiMode", mode);
-        updateModeUI();
-        nextCase();
-    };
 
     function pickRandom(arr) {
         if (!arr.length) return null;
@@ -591,16 +519,13 @@
         btns.forEach(b => b.disabled = true);
         
         const caseId = String(currentCase.id);
-        const progress = userProgress[caseId] || {
-            status: "not_done",
-            rating: null,
-            repetitions: 0,
-            lapses: 0,
-            easeFactor: 2.5,
-            intervalDays: 0
-        };
+        const progress = userProgress[caseId] || {};
 
-        let { repetitions, lapses, easeFactor, intervalDays } = progress;
+        let repetitions = progress.repetitions || 0;
+        let lapses = progress.lapses || 0;
+        let easeFactor = progress.easeFactor || 2.5;
+        let intervalDays = progress.intervalDays || 0;
+        
         const nextInterval = calculateNextInterval(rating, progress);
 
         if (rating === "super_easy") {
@@ -708,7 +633,7 @@
         const p = userProgress[c.id];
         let statusText = "";
         if (p && p.nextDueAt) {
-            statusText = `Repetisjon, skyldes: ${p.nextDueAt.toDate().toLocaleDateString('no-NO')}`;
+            statusText = `- repetisjon`;
         }
         setStatus(statusText);
     }
@@ -730,19 +655,14 @@
                 });
                 const newIds = ids.filter(id => !userProgress[id]);
 
-                if (mode === "newOnly") {
-                    pool = newIds;
-                } else {
-                    // Normal mode: due first, then new
-                    pool = dueIds.length > 0 ? dueIds : newIds;
-                }
+                // Normal mode: due first, then new
+                pool = dueIds.length > 0 ? dueIds : newIds;
             }
 
             if (pool.length === 0) {
                 renderCase(null);
             } else {
                 const targetId = pickRandom(pool);
-                setStatus(`Laster case ${targetId}...`);
                 nextBtn.disabled = true;
                 revealBtn.disabled = true;
                 
@@ -771,6 +691,8 @@
             metadataListener = onSnapshot(doc(db, "metadata", "config"), (snap) => {
                 if (snap.exists()) {
                     allCaseIds = snap.data().allCaseIds || [];
+                    // Populate datalist
+                    caseList.innerHTML = allCaseIds.map(id => `<option value="${id}">`).join("");
                 } else {
                     console.warn("metadata/config not found.");
                     allCaseIds = [];
@@ -835,6 +757,36 @@
             const caseId = normalizeCaseId(currentCase);
             const subject = encodeURIComponent(`Radioquiz - case ${caseId}`);
             window.location.href = `mailto:aagfriv@gmail.com?subject=${subject}`;
+        }
+    });
+
+    async function loadSpecificCase() {
+        const id = caseSearchInput.value.trim();
+        if (!id) return;
+        
+        try {
+            const c = await fetchCaseById(id);
+            renderCase(c);
+            caseSearchInput.value = ""; // Clear search after loading
+        } catch (e) {
+            console.error(e);
+            showToast(`Case ${id} ble ikke funnet.`);
+            setStatus("");
+        }
+    }
+
+    searchBtn.addEventListener("click", loadSpecificCase);
+
+    caseSearchInput.addEventListener("change", () => {
+        const val = caseSearchInput.value.trim();
+        if (allCaseIds.map(String).includes(val)) {
+            loadSpecificCase();
+        }
+    });
+
+    caseSearchInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") {
+            loadSpecificCase();
         }
     });
 
