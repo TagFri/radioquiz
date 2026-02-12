@@ -166,11 +166,12 @@
             <div class="left">
                 <div id="userInfo" class="muted">Laster bruker...</div>
             </div>
-            <!--
+
             <div class="middle">
-                <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="sablaflott" data-color="#FFDD00" data-emoji="☕"  data-font="Cookie" data-text="Spander en kaffe :) " data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>
-            </div>
-            -->
+                <button id="reportErrorBtn" type="button" class="outline" style="display:none; font-size: 12px; padding: 8px 10px;">Rapporter feil/tips</button>
+                <!-- <script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="sablaflott" data-color="#FFDD00" data-emoji="☕"  data-font="Cookie" data-text="Spander en kaffe :) " data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>-->
+             </div>
+
             <div class="right">
                 <button id="loginBtn" type="button" style="display:none;">Logg inn</button>
                 <button class="logoutBtn outline" type="button" style="display:none;">Logg ut</button>
@@ -208,8 +209,12 @@
     </div>
 
     <div class="box" id="undBox" style="display:none;">
-        <strong>Undersøkelse</strong>
-        <pre id="und"></pre>
+        <details id="undDetails">
+            <summary>Undersøkelse</summary>
+            <div class="content">
+                <pre id="und"></pre>
+            </div>
+        </details>
     </div>
 
     <div class="imgWrap" id="imgWrap" style="display:none;">
@@ -291,6 +296,7 @@
     const ratingBtns = document.getElementById("ratingBtns");
     const toastEl = document.getElementById("toast");
     const deleteProgressBtn = document.getElementById("deleteProgressBtn");
+    const reportErrorBtn = document.getElementById("reportErrorBtn");
 
     const imgWrap = document.getElementById("imgWrap");
     const prevImgBtn = document.getElementById("prevImg");
@@ -302,6 +308,7 @@
     const undBox = document.getElementById("undBox");
     const oppEl = document.getElementById("opp");
     const undEl = document.getElementById("und");
+    const undDetails = document.getElementById("undDetails");
     const oppTitle = document.getElementById("oppTitle");
 
     const fasitBox = document.getElementById("fasitBox");
@@ -532,6 +539,7 @@
         fasitBox.style.display = "none";
         revealBtn.textContent = "Vis fasit";
         prosedyreDetails.open = false;
+        undDetails.open = false;
         ratingBtns.style.display = "none";
         nextBtn.style.display = "none";
     }
@@ -657,11 +665,13 @@
             imgWrap.style.display = "none";
             imgWrap.querySelectorAll('.case-img').forEach(img => img.remove());
             revealBtn.style.display = "none";
+            reportErrorBtn.style.display = "none";
             hideFasit();
             return;
         }
         currentCase = c;
         revealBtn.style.display = "";
+        reportErrorBtn.style.display = "";
         imgUrls = getImageUrls(c);
         imgIdx = 0;
         hideFasit();
@@ -818,6 +828,14 @@
     revealBtn.addEventListener("click", () => {
         if (revealed) hideFasit();
         else showFasit();
+    });
+
+    reportErrorBtn.addEventListener("click", () => {
+        if (currentCase) {
+            const caseId = normalizeCaseId(currentCase);
+            const subject = encodeURIComponent(`Radioquiz - case ${caseId}`);
+            window.location.href = `mailto:aagfriv@gmail.com?subject=${subject}`;
+        }
     });
 
     prevImgBtn.onclick = () => {
