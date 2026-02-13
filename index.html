@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Tilfeldig radiologi-case</title>
+    <title>Radioquiz - gjort bedre!</title>
     <style>
         body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; margin: 0; padding: 16px; line-height: 1.4; }
         .wrap { max-width: 900px; margin: 0 auto; display: grid; gap: 12px; }
@@ -103,11 +103,34 @@
             pointer-events: none;
         }
 
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+            padding-bottom: 40px;
+        }
+        .footer h3 {
+            color: #111;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .footer p {
+            margin: 5px 0;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
         details summary { cursor: pointer; font-weight: 600; }
         details .content { margin-top: 8px; }
 
         #sr-status { font-weight: 600; color: #111; }
         .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #333; color: #fff; padding: 8px 16px; border-radius: 20px; font-size: 14px; opacity: 0; transition: opacity 0.3s; z-index: 1000; pointer-events: none; }
+        #bmcBtn:hover { background-color: #FFC400 !important; }
     </style>
 </head>
 <body>
@@ -135,6 +158,7 @@
             <button id="searchBtn" type="button" class="outline" style="font-size: 14px;">Åpne case</button>
         </div>
         <div class="right">
+            <a href="https://buymeacoffee.com/sablaflott" target="_blank" id="bmcBtn" style="background-color: #FFDD00; color: #000000; border: 1px solid transparent; padding: 8px 10px; border-radius: 10px; font-size: 12px; font-weight: bold; text-decoration: none; align-items: center; justify-content: center; min-height: 40px; box-sizing: border-box; transition: background-color 0.2s;">☕ Spander kaffe</a>
         </div>
     </div>
 
@@ -187,6 +211,13 @@
         </div>
     </div>
     <button id="nextBtn" type="button" style="margin-top: 20px; display: none;">Neste case</button>
+
+    <footer class="footer">
+        <h3>Radioquiz - gjort bedre!</h3>
+        <p>Vipps-donasjoner er frivillige bidrag til drift og videreutvikling (ikke et kjøp – dessverre ingen angrerett på god karma).</p>
+        <p>Pengene går til å holde siden i live og mindre cranky. Kanskje en kaffekopp til programmeringen</p>
+        <p>Vippset du feil? Send oss en melding, så ordner vi det.</p>
+    </footer>
 </div>
 
 <script type="module">
@@ -230,6 +261,7 @@
     const ratingBtns = document.getElementById("ratingBtns");
     const toastEl = document.getElementById("toast");
     const deleteProgressBtn = document.getElementById("deleteProgressBtn");
+    const bmcBtn = document.getElementById("bmcBtn");
     const reportErrorBtn = document.getElementById("reportErrorBtn");
     const caseSearchInput = document.getElementById("caseSearchInput");
     const searchBtn = document.getElementById("searchBtn");
